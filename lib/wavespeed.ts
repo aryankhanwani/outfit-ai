@@ -1,0 +1,117 @@
+/**
+ * FLUX.2 [klein] 9B Edit — image 1 = person, image 2 = garment (see route).
+ * Prompt style follows WaveSpeed multi-image examples ("image 1" / "image 2").
+ */
+export const DEFAULT_TRY_ON_PROMPT =
+  "Virtual try-on using two input images. Image 1 is the person (keep their face, body, pose, hair, and background). " +
+  "Image 2 is the clothing item to wear. " +
+  "Generate a single full-frame photograph where the person from image 1 is clearly wearing the garment from image 2 on the correct body region (e.g. shirt on torso). " +
+  "The clothing must sit naturally: correct scale, seams, drape, and fabric texture matching image 2. " +
+  "Photorealistic, natural lighting, clean skin tones, editorial fashion quality. " +
+  "Do NOT output a split screen, collage, diptych, side-by-side panels, or two photos in one frame. " +
+  "Do NOT paste the flat garment as a separate rectangle beside the person. One unified photo only.";
+
+/** Model id for WaveSpeed REST API (see api.txt). */
+export const WAVESPEED_FLUX_KLEIN_EDIT_MODEL =
+  "wavespeed-ai/flux-2-klein-9b/edit";
+
+const UPLOAD_BINARY_URL = "https://api.wavespeed.ai/api/v3/media/upload/binary";
+
+export class WavespeedConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "WavespeedConfigError";
+  }
+}
+
+export function normalizeApiKey(raw: string | undefined): string | null {
+  if (raw == null) return null;
+  let s = raw.trim();
+  if (!s) return null;
+  if (s.charCodeAt(0) === 0xfeff) {
+    s = s.slice(1).trim();
+  }
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    s = s.slice(1, -1).trim();
+  }
+  if (/^bearer\s+/i.test(s)) {
+    s = s.replace(/^bearer\s+/i, "").trim();
+  }
+  if (/^WAVESPEED_API_KEY\s*=\s*/i.test(s)) {
+    s = s.replace(/^WAVESPEED_API_KEY\s*=\s*/i, "").trim();
+  }
+  s = s.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+  return s || null;
+}
+
+export function getWavespeedApiKey(): string {
+  const normalized = normalizeApiKey(process.env.WAVESPEED_API_KEY);
+  if (!normalized) {
+    throw new WavespeedConfigError(
+      "Set WAVESPEED_API_KEY in .env.local (or Vercel env). Get a key at https://wavespeed.ai/accesskey"
+    );
+  }
+  return normalized;
+}
+
+export function extensionFromMime(mime: string): "jpg" | "png" | "webp" {
+  if (mime === "image/png") return "png";
+  if (mime === "image/webp") return "webp";
+  return "jpg";
+}
+
+export function mimeFromExtension(ext: string): string {
+  if (ext === "png") return "image/png";
+  if (ext === "webp") return "image/webp";
+  return "image/jpeg";
+}
+
+/**
+ * POST /api/v3/media/upload/binary — upload bytes and receive a CDN URL for inference.
+ */
+export async function uploadBinary(
+  apiKey: string,
+  buffer: Buffer,
+  filename: string,
+  mime: string
+): Promise<string> {
+  const form = new FormData();
+  const bytes = new Uint8Array(buffer);
+  form.append("file", new Blob([bytes], { type: mime }), filename);
+
+  const res = await fetch(UPLOAD_BINARY_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error(
+      `WaveSpeed upload returned non-JSON (${res.status}): ${text.slice(0, 300)}`
+    );
+  }
+
+  const parsed = json as {
+    code?: number;
+    message?: string;
+    data?: { download_url?: string };
+  };
+
+  if (!res.ok || parsed.code !== 200 || !parsed.data?.download_url) {
+    throw new Error(
+      parsed.message ||
+        `WaveSpeed upload failed (${res.status}): ${text.slice(0, 400)}`
+    );
+  }
+
+  return parsed.data.download_url;
+}

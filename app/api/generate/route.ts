@@ -1,0 +1,178 @@
+import Client from "wavespeed";
+import { NextResponse } from "next/server";
+import {
+  DEFAULT_TRY_ON_PROMPT,
+  WavespeedConfigError,
+  getWavespeedApiKey,
+  mimeFromExtension,
+  uploadBinary,
+  WAVESPEED_FLUX_KLEIN_EDIT_MODEL,
+} from "@/lib/wavespeed";
+import { normalizeImageForFlux } from "@/lib/resizeForFlux";
+
+export const runtime = "nodejs";
+
+/** Vercel serverless body limit (~4.5 MB on Hobby). */
+const MAX_BYTES = 4 * 1024 * 1024;
+
+function buildPrompt(args: {
+  userPrompt: string;
+}): string {
+  const parts = [DEFAULT_TRY_ON_PROMPT];
+  if (args.userPrompt.trim()) {
+    parts.push("", "Additional direction:", args.userPrompt.trim());
+  }
+  return parts.join("\n").slice(0, 8000);
+}
+
+export async function POST(request: Request) {
+  let apiKey: string;
+  try {
+    apiKey = getWavespeedApiKey();
+  } catch (e) {
+    const message =
+      e instanceof WavespeedConfigError
+        ? e.message
+        : "Invalid WAVESPEED_API_KEY configuration.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+
+  const form = await request.formData();
+  const person = form.get("person");
+  const clothing = form.get("clothing");
+  const promptRaw = form.get("prompt");
+
+  if (!(person instanceof File) || !(clothing instanceof File)) {
+    return NextResponse.json(
+      {
+        error:
+          'Expected multipart fields "person" and "clothing" with images.',
+      },
+      { status: 400 }
+    );
+  }
+
+  const userPrompt = typeof promptRaw === "string" ? promptRaw : "";
+
+  for (const file of [person, clothing]) {
+    if (file.size > MAX_BYTES) {
+      return NextResponse.json(
+        { error: "Each image must be under 4 MB." },
+        { status: 400 }
+      );
+    }
+    const mime = file.type || "image/jpeg";
+    if (!mime.startsWith("image/")) {
+      return NextResponse.json(
+        { error: "Only image uploads are supported." },
+        { status: 400 }
+      );
+    }
+  }
+
+  const maxEdge = Math.min(
+    2048,
+    Math.max(
+      512,
+      Number.parseInt(process.env.WAVESPEED_INPUT_MAX_EDGE ?? "1280", 10) ||
+        1280
+    )
+  );
+
+  const fullPrompt = buildPrompt({ userPrompt });
+
+  const personBuf = Buffer.from(await person.arrayBuffer());
+  const clothingBuf = Buffer.from(await clothing.arrayBuffer());
+
+  let personJpeg: Buffer;
+  let clothingJpeg: Buffer;
+  try {
+    [personJpeg, clothingJpeg] = await Promise.all([
+      normalizeImageForFlux(personBuf, maxEdge),
+      normalizeImageForFlux(clothingBuf, maxEdge),
+    ]);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Could not process images.";
+    return NextResponse.json(
+      { error: "Failed to prepare images for generation.", detail: msg },
+      { status: 400 }
+    );
+  }
+
+  const jpegMime = mimeFromExtension("jpg");
+
+  let personUrl: string;
+  let clothingUrl: string;
+  try {
+    [personUrl, clothingUrl] = await Promise.all([
+      uploadBinary(apiKey, personJpeg, "person.jpg", jpegMime),
+      uploadBinary(apiKey, clothingJpeg, "clothing.jpg", jpegMime),
+    ]);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Upload failed.";
+    return NextResponse.json(
+      { error: "WaveSpeed image upload failed.", detail: msg },
+      { status: 502 }
+    );
+  }
+
+  const seedRaw = process.env.WAVESPEED_SEED?.trim();
+  const seed =
+    seedRaw !== undefined && seedRaw !== ""
+      ? Number.parseInt(seedRaw, 10)
+      : -1;
+
+  // Long timeouts: sync mode holds one HTTP request until inference finishes (no polling tail).
+  const inferenceTimeoutSec = Math.min(
+    3600,
+    Math.max(
+      120,
+      Number.parseInt(process.env.WAVESPEED_INFERENCE_TIMEOUT_SEC ?? "900", 10) ||
+        900
+    )
+  );
+
+  const client = new Client(apiKey, {
+    connectionTimeout: inferenceTimeoutSec,
+    timeout: inferenceTimeoutSec,
+  });
+
+  let outputs: unknown;
+  try {
+    const result = await client.run(
+      process.env.WAVESPEED_MODEL?.trim() || WAVESPEED_FLUX_KLEIN_EDIT_MODEL,
+      {
+        enable_base64_output: false,
+        images: [personUrl, clothingUrl],
+        prompt: fullPrompt,
+        seed: Number.isFinite(seed) ? seed : -1,
+      },
+      {
+        enableSyncMode: true,
+        timeout: inferenceTimeoutSec,
+      }
+    );
+    outputs = result.outputs;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Image generation failed.";
+    return NextResponse.json(
+      { error: "WaveSpeed image generation failed.", detail: msg },
+      { status: 502 }
+    );
+  }
+
+  const outUrl = Array.isArray(outputs) ? outputs[0] : undefined;
+  if (typeof outUrl !== "string" || !outUrl.startsWith("http")) {
+    return NextResponse.json(
+      {
+        error: "Unexpected WaveSpeed response.",
+        detail: "No output image URL in response.",
+      },
+      { status: 502 }
+    );
+  }
+
+  // Return the CDN URL so the browser loads the image directly. Re-fetching on
+  // the server and sending base64 duplicated transfer and added ~10–20s delay.
+  return NextResponse.json({ imageUrl: outUrl });
+}
