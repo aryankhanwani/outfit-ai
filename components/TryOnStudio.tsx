@@ -233,8 +233,9 @@ export function TryOnStudio() {
         </h1>
         <p className="mx-auto mt-3 max-w-2xl text-pretty text-base text-zinc-600 dark:text-zinc-400">
           Upload a clear photo of yourself and a photo of the clothing item. We
-          resize, upload to WaveSpeed, and run FLUX.2 [klein] 9B Edit with your
-          photo first and the garment second—nothing is stored after the request.
+          resize, upload to WaveSpeed, and run Google Nano Banana 2 Edit-Fast
+          with your photo first and the garment second—nothing is stored after
+          the request.
         </p>
       </header>
 

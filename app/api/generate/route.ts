@@ -6,9 +6,20 @@ import {
   getWavespeedApiKey,
   mimeFromExtension,
   uploadBinary,
-  WAVESPEED_FLUX_KLEIN_EDIT_MODEL,
+  WAVESPEED_EDIT_MODEL,
 } from "@/lib/wavespeed";
 import { normalizeImageForFlux } from "@/lib/resizeForFlux";
+
+type Resolution = "2k" | "4k";
+type OutputFormat = "png" | "jpeg";
+
+function normalizeResolution(raw: string | undefined): Resolution {
+  return raw === "4k" ? "4k" : "2k";
+}
+
+function normalizeOutputFormat(raw: string | undefined): OutputFormat {
+  return raw === "jpeg" || raw === "jpg" ? "jpeg" : "png";
+}
 
 export const runtime = "nodejs";
 
@@ -116,40 +127,50 @@ export async function POST(request: Request) {
     );
   }
 
-  const seedRaw = process.env.WAVESPEED_SEED?.trim();
-  const seed =
-    seedRaw !== undefined && seedRaw !== ""
-      ? Number.parseInt(seedRaw, 10)
-      : -1;
-
-  // Long timeouts: sync mode holds one HTTP request until inference finishes (no polling tail).
   const inferenceTimeoutSec = Math.min(
     3600,
     Math.max(
-      120,
-      Number.parseInt(process.env.WAVESPEED_INFERENCE_TIMEOUT_SEC ?? "900", 10) ||
-        900
+      60,
+      Number.parseInt(process.env.WAVESPEED_INFERENCE_TIMEOUT_SEC ?? "600", 10) ||
+        600
     )
   );
 
+  // Nano Banana 2 docs warn sync mode can time out (Google compute variability).
+  // Default to async + fast polling, but allow WAVESPEED_SYNC_MODE=true to opt in.
+  const enableSyncMode = process.env.WAVESPEED_SYNC_MODE === "true";
+
   const client = new Client(apiKey, {
-    connectionTimeout: inferenceTimeoutSec,
+    connectionTimeout: enableSyncMode ? inferenceTimeoutSec : 30,
     timeout: inferenceTimeoutSec,
   });
+
+  const resolution = normalizeResolution(process.env.WAVESPEED_RESOLUTION);
+  const outputFormat = normalizeOutputFormat(process.env.WAVESPEED_OUTPUT_FORMAT);
+  const aspectRatio = process.env.WAVESPEED_ASPECT_RATIO?.trim();
+  const enableWebSearch = process.env.WAVESPEED_WEB_SEARCH === "true";
+
+  const input: Record<string, unknown> = {
+    enable_base64_output: false,
+    enable_web_search: enableWebSearch,
+    images: [personUrl, clothingUrl],
+    output_format: outputFormat,
+    prompt: fullPrompt,
+    resolution,
+  };
+  if (aspectRatio) {
+    input.aspect_ratio = aspectRatio;
+  }
 
   let outputs: unknown;
   try {
     const result = await client.run(
-      process.env.WAVESPEED_MODEL?.trim() || WAVESPEED_FLUX_KLEIN_EDIT_MODEL,
+      process.env.WAVESPEED_MODEL?.trim() || WAVESPEED_EDIT_MODEL,
+      input,
       {
-        enable_base64_output: false,
-        images: [personUrl, clothingUrl],
-        prompt: fullPrompt,
-        seed: Number.isFinite(seed) ? seed : -1,
-      },
-      {
-        enableSyncMode: true,
+        enableSyncMode,
         timeout: inferenceTimeoutSec,
+        pollInterval: 0.4,
       }
     );
     outputs = result.outputs;

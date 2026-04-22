@@ -1,42 +1,19 @@
 /**
- * FLUX.2 [klein] 9B Edit — image 1 = person, image 2 = garment (see route).
- * Prompt style follows WaveSpeed multi-image examples ("image 1" / "image 2").
+ * Google Nano Banana 2 Edit-Fast (Gemini 3.1 Flash Image) — image 1 = person,
+ * image 2 = garment. Prompt style uses "image 1" / "image 2" as the docs suggest.
  */
 export const DEFAULT_TRY_ON_PROMPT =
-  "You are a professional fashion photo retouching AI. Your task is a realistic virtual clothing try-on." +
-  "\n\n" +
-  "INPUTS:\n" +
-  "- Image 1: The PERSON. Preserve everything about them — face, skin tone, hair, body shape, pose, expression, and the original background/environment exactly as-is.\n" +
-  "- Image 2: The GARMENT. This is the only thing that changes.\n" +
-  "\n" +
-  "YOUR TASK:\n" +
-  "Replace whatever clothing the person in Image 1 is currently wearing on the relevant body region with the exact garment shown in Image 2. " +
-  "The final output must look like a single, unmodified photograph taken of that person wearing that garment — indistinguishable from a real photo shoot.\n" +
-  "\n" +
-  "GARMENT RULES (critical):\n" +
-  "- Identify the garment type from Image 2 (e.g. t-shirt, dress, jacket, pants, hoodie) and apply it ONLY to the correct body region.\n" +
-  "- Reproduce the garment's exact colors, prints, patterns, logos, text, texture, and fabric weight as seen in Image 2. Do NOT invent or alter any design detail.\n" +
-  "- The garment must conform naturally to the person's body: follow their pose, body contours, and proportions.\n" +
-  "- Simulate realistic fabric physics — natural folds, creases, drape, and gravity-based wrinkles appropriate to the fabric type (e.g. stiff denim vs flowing silk).\n" +
-  "- Sleeve length, hem length, neckline shape, and fit (loose/tight) must match Image 2 exactly.\n" +
-  "- Collar, buttons, zippers, pockets, and all structural garment elements must be visible and correctly placed.\n" +
-  "\n" +
-  "LIGHTING & REALISM RULES:\n" +
-  "- The garment's lighting, shadows, and highlights must match the lighting conditions in Image 1 (direction, intensity, color temperature).\n" +
-  "- Skin visible around the garment (neck, arms, hands) must remain natural and unedited.\n" +
-  "- The garment edges must blend seamlessly into the person's body — no hard cut-out edges, no halo artifacts, no blurring.\n" +
-  "\n" +
-  "STRICT OUTPUT RULES:\n" +
-  "- Output ONE single unified photograph only. Absolutely no split screen, side-by-side, collage, diptych, before/after panels, or inset thumbnails.\n" +
-  "- Do NOT paste the garment as a flat 2D rectangle or overlay. It must be fully integrated onto the 3D body.\n" +
-  "- Do NOT change the person's face, hair, skin, body shape, pose, or background in any way.\n" +
-  "- Do NOT add accessories, jewelry, or other clothing items not present in either image.\n" +
-  "- Do NOT change the image aspect ratio, crop, or framing.\n" +
-  "- The result must be photorealistic, editorial-quality, and pass as a genuine fashion photograph.";
+  "Virtual try-on using two input images. Image 1 is the person (keep their face, body, pose, hair, and background). " +
+  "Image 2 is the clothing item to wear. " +
+  "Generate a single full-frame photograph where the person from image 1 is clearly wearing the garment from image 2 on the correct body region (e.g. shirt on torso, pants on legs, dress replaces current outfit). " +
+  "The clothing must sit naturally: correct scale, seams, drape, and fabric texture matching image 2. " +
+  "Photorealistic, natural lighting, clean skin tones, editorial fashion quality. " +
+  "Replace the original outfit entirely with the garment from image 2. Do not keep the previous clothing visible. " +
+  "Do NOT output a split screen, collage, diptych, side-by-side panels, or two photos in one frame. " +
+  "Do NOT paste the flat garment as a separate rectangle beside the person. One unified photo only.";
 
-/** Model id for WaveSpeed REST API (see api.txt). */
-export const WAVESPEED_FLUX_KLEIN_EDIT_MODEL =
-  "wavespeed-ai/flux-2-klein-9b/edit";
+/** Model id for WaveSpeed REST API (see api.txt — Google Nano Banana 2 Edit-Fast). */
+export const WAVESPEED_EDIT_MODEL = "google/nano-banana-2/edit-fast";
 
 const UPLOAD_BINARY_URL = "https://api.wavespeed.ai/api/v3/media/upload/binary";
 
