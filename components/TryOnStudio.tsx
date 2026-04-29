@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { GenerationProgress } from "@/components/GenerationProgress";
 
-type Slot = "person" | "clothing";
+type Mode = "tryon" | "cloth";
+type Slot = "person" | "clothing" | "item";
 
 type UploadState = {
   file: File | null;
@@ -18,9 +19,12 @@ const initialSlot: UploadState = {
 export function TryOnStudio() {
   const personInputId = useId();
   const clothingInputId = useId();
+  const itemInputId = useId();
 
+  const [mode, setMode] = useState<Mode>("tryon");
   const [person, setPerson] = useState<UploadState>(initialSlot);
   const [clothing, setClothing] = useState<UploadState>(initialSlot);
+  const [item, setItem] = useState<UploadState>(initialSlot);
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState<"idle" | "generating" | "done" | "error">(
     "idle"
@@ -39,6 +43,11 @@ export function TryOnStudio() {
     (slot: Slot, next: UploadState) => {
       if (slot === "person") {
         setPerson((prev) => {
+          revokePreview(prev.previewUrl);
+          return next;
+        });
+      } else if (slot === "item") {
+        setItem((prev) => {
           revokePreview(prev.previewUrl);
           return next;
         });
@@ -72,16 +81,28 @@ export function TryOnStudio() {
   const run = async () => {
     setError(null);
     setResultDataUrls([]);
-    if (!person.file || !clothing.file) {
-      setError("Add both a photo of you and a photo of the clothing.");
-      return;
+    if (mode === "tryon") {
+      if (!person.file || !clothing.file) {
+        setError("Add both a photo of you and a photo of the clothing.");
+        return;
+      }
+    } else {
+      if (!item.file) {
+        setError("Upload a fabric/garment photo first.");
+        return;
+      }
     }
 
     setStatus("generating");
 
     const fd = new FormData();
-    fd.append("person", person.file);
-    fd.append("clothing", clothing.file);
+    fd.append("mode", mode);
+    if (mode === "tryon") {
+      fd.append("person", person.file!);
+      fd.append("clothing", clothing.file!);
+    } else {
+      fd.append("item", item.file!);
+    }
     if (prompt.trim()) {
       fd.append("prompt", prompt.trim());
     }
@@ -156,6 +177,18 @@ export function TryOnStudio() {
 
   const tipIndex = Math.floor(elapsedSec / 7) % 4;
 
+  const clothQuickPrompts = useMemo(
+    () => [
+      { label: "T-shirt", prompt: "Make this look like a premium cotton t-shirt (classic fit) on a neutral model." },
+      { label: "Oversized tee", prompt: "Make this look like an oversized streetwear t-shirt on a neutral model." },
+      { label: "Shirt", prompt: "Make this look like a button-down shirt with realistic collar and cuffs." },
+      { label: "Hoodie", prompt: "Make this look like a hoodie with realistic hood, pocket, and thick fabric drape." },
+      { label: "Polo", prompt: "Make this look like a polo shirt with collar and buttons." },
+      { label: "Dress", prompt: "Make this look like a simple dress that uses this exact fabric." },
+    ],
+    []
+  );
+
   const DropCard = ({
     slot,
     title,
@@ -223,49 +256,118 @@ export function TryOnStudio() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
-      <header className="mb-10 text-center sm:mb-12">
-        <p className="text-sm font-medium uppercase tracking-widest text-violet-600 dark:text-violet-400">
-          Virtual try-on
-        </p>
-        <h1 className="mt-2 text-balance text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl dark:text-white">
-          See outfits on you before you buy
-        </h1>
-        <p className="mx-auto mt-3 max-w-2xl text-pretty text-base text-zinc-600 dark:text-zinc-400">
-          Upload a clear photo of yourself and a photo of the clothing item. We
-          resize, upload to WaveSpeed, and run Google Nano Banana 2 Edit-Fast
-          with your photo first and the garment second—nothing is stored after
-          the request.
-        </p>
-      </header>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <DropCard
-          slot="person"
-          title="Your photo"
-          subtitle="Full body or upper body works best, good lighting."
-          inputId={personInputId}
-          state={person}
-        />
-        <DropCard
-          slot="clothing"
-          title="Clothing photo"
-          subtitle="Flat lay or model shot—clear view of the garment."
-          inputId={clothingInputId}
-          state={clothing}
-        />
+    <div className="w-full">
+      <div className="mb-6 flex items-center justify-center">
+        <div className="inline-flex rounded-full border border-zinc-200/70 bg-(--surface) p-1 text-sm font-semibold shadow-sm backdrop-blur dark:border-zinc-800/70 dark:bg-(--surface)">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setMode("tryon");
+              setPrompt("");
+              setError(null);
+              setResultDataUrls([]);
+            }}
+            className={`rounded-full px-4 py-2 transition ${
+              mode === "tryon"
+                ? "bg-violet-600 text-white"
+                : "text-zinc-700 hover:text-zinc-900 dark:text-zinc-200 dark:hover:text-white"
+            }`}
+          >
+            Try-on
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setMode("cloth");
+              setPrompt("");
+              setError(null);
+              setResultDataUrls([]);
+            }}
+            className={`rounded-full px-4 py-2 transition ${
+              mode === "cloth"
+                ? "bg-violet-600 text-white"
+                : "text-zinc-700 hover:text-zinc-900 dark:text-zinc-200 dark:hover:text-white"
+            }`}
+          >
+            Cloth ideas
+          </button>
+        </div>
       </div>
+
+      {mode === "tryon" ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <DropCard
+            slot="person"
+            title="Your photo"
+            subtitle="Full body or upper body works best, good lighting."
+            inputId={personInputId}
+            state={person}
+          />
+          <DropCard
+            slot="clothing"
+            title="Clothing photo"
+            subtitle="Flat lay or model shot—clear view of the garment."
+            inputId={clothingInputId}
+            state={clothing}
+          />
+        </div>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <DropCard
+            slot="item"
+            title="Fabric / garment photo"
+            subtitle="Upload the cloth item or fabric pattern to preview styles."
+            inputId={itemInputId}
+            state={item}
+          />
+          <div className="space-y-6">
+            <DropCard
+              slot="person"
+              title="Your photo (optional)"
+              subtitle="If added, we’ll put the style on you (keeps face/pose)."
+              inputId={personInputId}
+              state={person}
+            />
+            <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/50">
+              <div className="mb-3">
+                <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                  Quick styles
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  Tap to autofill a good prompt (you can edit it below).
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {clothQuickPrompts.map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setPrompt(p.prompt)}
+                    className="rounded-full border border-zinc-200 bg-white/70 px-3 py-1.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-white disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-950"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mt-8 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/50">
         <label
           htmlFor="prompt"
           className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
         >
-          Prompt (optional)
+          Prompt
         </label>
         <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-          Leave blank to use the built-in virtual try-on prompt, or describe
-          lighting, background, or fit.
+          {mode === "tryon"
+            ? "Leave blank to use the built-in try-on prompt, or describe lighting/background/fit."
+            : "Leave blank to use the built-in cloth-ideas prompt, or specify the style (shirt, t-shirt, etc)."}
         </p>
         <textarea
           id="prompt"
@@ -281,11 +383,16 @@ export function TryOnStudio() {
       <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
         <button
           type="button"
-          disabled={busy || !person.file || !clothing.file}
+          disabled={
+            busy ||
+            (mode === "tryon"
+              ? !person.file || !clothing.file
+              : !item.file)
+          }
           onClick={() => void run()}
           className="inline-flex min-h-12 min-w-[200px] items-center justify-center rounded-full bg-violet-600 px-8 text-sm font-semibold text-white shadow-lg shadow-violet-600/25 transition hover:bg-violet-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 disabled:shadow-none dark:disabled:bg-zinc-700 dark:disabled:text-zinc-400"
         >
-          {busy ? "Working…" : "Generate try-on"}
+          {busy ? "Working…" : mode === "tryon" ? "Generate try-on" : "Generate idea"}
         </button>
         {!busy && statusMessage && (
           <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
@@ -333,7 +440,7 @@ export function TryOnStudio() {
             Your result
           </h2>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Loaded from the WaveSpeed CDN. Right-click or long-press to save.
+            Loaded from CDN. Right-click or long-press to save.
           </p>
           <div className="mt-4 grid gap-6 sm:grid-cols-2">
             {resultDataUrls.map((url, i) => (
@@ -363,15 +470,7 @@ export function TryOnStudio() {
       )}
 
       <footer className="mt-16 border-t border-zinc-200/80 pt-8 text-center text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-500">
-        API keys stay on the server. Add{" "}
-        <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-[0.8rem] dark:bg-zinc-900">
-          WAVESPEED_API_KEY
-        </code>{" "}
-        in{" "}
-        <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-[0.8rem] dark:bg-zinc-900">
-          .env.local
-        </code>{" "}
-        for local dev and in Vercel project settings for production.
+        Tip: Use well-lit images for best results.
       </footer>
     </div>
   );

@@ -12,6 +12,23 @@ export const DEFAULT_TRY_ON_PROMPT =
   "Do NOT output a split screen, collage, diptych, side-by-side panels, or two photos in one frame. " +
   "Do NOT paste the flat garment as a separate rectangle beside the person. One unified photo only.";
 
+export const DEFAULT_CLOTH_IDEAS_PROMPT =
+  "You are given a single reference image of a garment or fabric. " +
+  "Generate ONE photorealistic product/on-model image that shows how this exact fabric/garment would look as the requested clothing style. " +
+  "Keep the material, pattern, print, color, texture and details faithful to the input. " +
+  "Use a clean studio background, natural shadows, and realistic folds and seams. " +
+  "Do NOT add logos or extra text. Do NOT change the print. " +
+  "Return a single image only (no collage, no split screen).";
+
+export const DEFAULT_CLOTH_IDEAS_WITH_PERSON_PROMPT =
+  "You are given two reference images. Image 1 is the person. Image 2 is a garment or fabric. " +
+  "Generate ONE photorealistic photo where the person from image 1 is wearing the requested clothing style made from the exact fabric/garment in image 2. " +
+  "Keep the person's identity, face, body, pose, hair and background from image 1. " +
+  "Keep the material, pattern, print, color, texture and details faithful to image 2. " +
+  "The clothing must sit naturally with realistic seams, folds, and drape. " +
+  "Replace the original outfit appropriately. " +
+  "Do NOT add logos or extra text. Do NOT output split screens/collages. One unified photo only.";
+
 /** Model id for WaveSpeed REST API (see api.txt — Google Nano Banana 2 Edit-Fast). */
 export const WAVESPEED_EDIT_MODEL = "google/nano-banana-2/edit-fast";
 

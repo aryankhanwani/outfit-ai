@@ -1,6 +1,8 @@
 import Client from "wavespeed";
 import { NextResponse } from "next/server";
 import {
+  DEFAULT_CLOTH_IDEAS_PROMPT,
+  DEFAULT_CLOTH_IDEAS_WITH_PERSON_PROMPT,
   DEFAULT_TRY_ON_PROMPT,
   WavespeedConfigError,
   getWavespeedApiKey,
@@ -27,9 +29,17 @@ export const runtime = "nodejs";
 const MAX_BYTES = 4 * 1024 * 1024;
 
 function buildPrompt(args: {
+  mode: "tryon" | "cloth";
+  hasPerson: boolean;
   userPrompt: string;
 }): string {
-  const parts = [DEFAULT_TRY_ON_PROMPT];
+  const parts = [
+    args.mode === "cloth"
+      ? args.hasPerson
+        ? DEFAULT_CLOTH_IDEAS_WITH_PERSON_PROMPT
+        : DEFAULT_CLOTH_IDEAS_PROMPT
+      : DEFAULT_TRY_ON_PROMPT,
+  ];
   if (args.userPrompt.trim()) {
     parts.push("", "Additional direction:", args.userPrompt.trim());
   }
@@ -49,23 +59,36 @@ export async function POST(request: Request) {
   }
 
   const form = await request.formData();
+  const modeRaw = form.get("mode");
+  const mode = modeRaw === "cloth" ? "cloth" : "tryon";
   const person = form.get("person");
   const clothing = form.get("clothing");
+  const item = form.get("item");
   const promptRaw = form.get("prompt");
 
-  if (!(person instanceof File) || !(clothing instanceof File)) {
-    return NextResponse.json(
-      {
-        error:
-          'Expected multipart fields "person" and "clothing" with images.',
-      },
-      { status: 400 }
-    );
+  if (mode === "tryon") {
+    if (!(person instanceof File) || !(clothing instanceof File)) {
+      return NextResponse.json(
+        {
+          error:
+            'Expected multipart fields "person" and "clothing" with images.',
+        },
+        { status: 400 }
+      );
+    }
+  } else {
+    if (!(item instanceof File)) {
+      return NextResponse.json(
+        { error: 'Expected multipart field "item" with an image.' },
+        { status: 400 }
+      );
+    }
   }
 
   const userPrompt = typeof promptRaw === "string" ? promptRaw : "";
 
-  for (const file of [person, clothing]) {
+  const files = mode === "tryon" ? [person as File, clothing as File] : [item as File];
+  for (const file of files) {
     if (file.size > MAX_BYTES) {
       return NextResponse.json(
         { error: "Each image must be under 4 MB." },
@@ -90,35 +113,44 @@ export async function POST(request: Request) {
     )
   );
 
-  const fullPrompt = buildPrompt({ userPrompt });
-
-  const personBuf = Buffer.from(await person.arrayBuffer());
-  const clothingBuf = Buffer.from(await clothing.arrayBuffer());
-
-  let personJpeg: Buffer;
-  let clothingJpeg: Buffer;
-  try {
-    [personJpeg, clothingJpeg] = await Promise.all([
-      normalizeImageForFlux(personBuf, maxEdge),
-      normalizeImageForFlux(clothingBuf, maxEdge),
-    ]);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Could not process images.";
-    return NextResponse.json(
-      { error: "Failed to prepare images for generation.", detail: msg },
-      { status: 400 }
-    );
-  }
+  const hasClothPerson =
+    mode === "cloth" && person instanceof File ? true : false;
+  const fullPrompt = buildPrompt({ mode, hasPerson: hasClothPerson, userPrompt });
 
   const jpegMime = mimeFromExtension("jpg");
 
-  let personUrl: string;
-  let clothingUrl: string;
+  let imageUrls: string[];
   try {
-    [personUrl, clothingUrl] = await Promise.all([
-      uploadBinary(apiKey, personJpeg, "person.jpg", jpegMime),
-      uploadBinary(apiKey, clothingJpeg, "clothing.jpg", jpegMime),
-    ]);
+    if (mode === "tryon") {
+      const personBuf = Buffer.from(await (person as File).arrayBuffer());
+      const clothingBuf = Buffer.from(await (clothing as File).arrayBuffer());
+      const [personJpeg, clothingJpeg] = await Promise.all([
+        normalizeImageForFlux(personBuf, maxEdge),
+        normalizeImageForFlux(clothingBuf, maxEdge),
+      ]);
+      const [personUrl, clothingUrl] = await Promise.all([
+        uploadBinary(apiKey, personJpeg, "person.jpg", jpegMime),
+        uploadBinary(apiKey, clothingJpeg, "clothing.jpg", jpegMime),
+      ]);
+      imageUrls = [personUrl, clothingUrl];
+    } else {
+      const itemBuf = Buffer.from(await (item as File).arrayBuffer());
+      const itemJpeg = await normalizeImageForFlux(itemBuf, maxEdge);
+      const itemUrl = await uploadBinary(apiKey, itemJpeg, "item.jpg", jpegMime);
+      if (person instanceof File) {
+        const personBuf = Buffer.from(await person.arrayBuffer());
+        const personJpeg = await normalizeImageForFlux(personBuf, maxEdge);
+        const personUrl = await uploadBinary(
+          apiKey,
+          personJpeg,
+          "person.jpg",
+          jpegMime
+        );
+        imageUrls = [personUrl, itemUrl];
+      } else {
+        imageUrls = [itemUrl];
+      }
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Upload failed.";
     return NextResponse.json(
@@ -153,7 +185,7 @@ export async function POST(request: Request) {
   const input: Record<string, unknown> = {
     enable_base64_output: false,
     enable_web_search: enableWebSearch,
-    images: [personUrl, clothingUrl],
+    images: imageUrls,
     output_format: outputFormat,
     prompt: fullPrompt,
     resolution,
