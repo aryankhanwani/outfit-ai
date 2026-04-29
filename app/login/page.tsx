@@ -12,18 +12,23 @@ export default function LoginPage() {
 
   const busy = status === "busy";
 
-  const authRedirectTo =
-    typeof window === "undefined"
-      ? undefined
-      : `${window.location.origin}/auth/callback`;
+  const authRedirectTo = (): string | undefined => {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+    if (siteUrl) return `${siteUrl}/auth/callback`;
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/auth/callback`;
+    }
+    return undefined;
+  };
 
   const onGoogle = async () => {
     setMessage(null);
     setStatus("busy");
     const supabase = createSupabaseBrowserClient();
+    const redirectTo = authRedirectTo();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: authRedirectTo },
+      options: redirectTo ? { redirectTo } : undefined,
     });
     if (error) setMessage(error.message);
     setStatus("idle");
@@ -39,10 +44,11 @@ export default function LoginPage() {
       }
 
       if (mode === "signup") {
+        const emailRedirectTo = authRedirectTo();
         const { error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { emailRedirectTo: authRedirectTo },
+          options: emailRedirectTo ? { emailRedirectTo } : undefined,
         });
         if (error) throw error;
         setMessage("Check your email to confirm your account, then come back.");

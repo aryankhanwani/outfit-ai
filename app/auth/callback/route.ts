@@ -6,6 +6,8 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/studio";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const base = siteUrl ? siteUrl.replace(/\/$/, "") : origin;
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login`);
@@ -30,6 +32,6 @@ export async function GET(request: Request) {
   );
 
   await supabase.auth.exchangeCodeForSession(code);
-  return NextResponse.redirect(`${origin}${next}`);
+  return NextResponse.redirect(`${base}${next}`);
 }
 
