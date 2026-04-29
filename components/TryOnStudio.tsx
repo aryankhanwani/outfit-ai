@@ -202,16 +202,16 @@ export function TryOnStudio() {
     inputId: string;
     state: UploadState;
   }) => (
-    <div className="group relative flex min-h-[220px] flex-col rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition hover:border-violet-300/80 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950/50 dark:hover:border-violet-500/40">
+    <div className="group relative flex min-h-[220px] flex-col rounded-2xl border border-white/10 bg-[#12121f] p-5 shadow-sm transition hover:border-[#1bcea8]/50 hover:shadow-md">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <h2 className="text-base font-semibold tracking-tight text-[#f2ede4]">
             {title}
           </h2>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p>
+          <p className="mt-1 text-sm text-[#8b8ba0]">{subtitle}</p>
         </div>
         {state.file && (
-          <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+          <span className="rounded-full border border-[#1bcea8]/40 bg-[#1bcea8]/10 px-2.5 py-0.5 text-xs font-medium text-[#1bcea8]">
             Ready
           </span>
         )}
@@ -219,7 +219,7 @@ export function TryOnStudio() {
 
       <label
         htmlFor={inputId}
-        className="relative mt-auto flex flex-1 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 px-4 py-8 text-center transition group-hover:border-violet-400/60 group-hover:bg-violet-50/30 dark:border-zinc-700 dark:bg-zinc-900/40 dark:group-hover:border-violet-500/50 dark:group-hover:bg-violet-950/20"
+        className="relative mt-auto flex flex-1 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-[#0d0d1c] px-4 py-8 text-center transition group-hover:border-[#1bcea8]/60 group-hover:bg-[#1a1a2e]"
       >
         <input
           id={inputId}
@@ -243,10 +243,10 @@ export function TryOnStudio() {
           />
         ) : (
           <>
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+            <span className="text-sm font-medium text-[#f2ede4]">
               Click to upload or drag an image here
             </span>
-            <span className="mt-1 text-xs text-zinc-500">
+            <span className="mt-1 text-xs text-[#8b8ba0]">
               JPG, PNG, or WebP · max ~4 MB (Vercel limit)
             </span>
           </>
@@ -257,8 +257,8 @@ export function TryOnStudio() {
 
   return (
     <div className="w-full">
-      <div className="mb-6 flex items-center justify-center">
-        <div className="inline-flex rounded-full border border-zinc-200/70 bg-(--surface) p-1 text-sm font-semibold shadow-sm backdrop-blur dark:border-zinc-800/70 dark:bg-(--surface)">
+      <div className="mb-7 flex items-center justify-center">
+        <div className="inline-flex rounded-full border border-white/15 bg-[#12121f] p-1 text-sm font-semibold shadow-sm">
           <button
             type="button"
             disabled={busy}
@@ -271,7 +271,7 @@ export function TryOnStudio() {
             className={`rounded-full px-4 py-2 transition ${
               mode === "tryon"
                 ? "bg-violet-600 text-white"
-                : "text-zinc-700 hover:text-zinc-900 dark:text-zinc-200 dark:hover:text-white"
+                : "text-[#8b8ba0] hover:text-[#f2ede4]"
             }`}
           >
             Try-on
@@ -288,7 +288,7 @@ export function TryOnStudio() {
             className={`rounded-full px-4 py-2 transition ${
               mode === "cloth"
                 ? "bg-violet-600 text-white"
-                : "text-zinc-700 hover:text-zinc-900 dark:text-zinc-200 dark:hover:text-white"
+                : "text-[#8b8ba0] hover:text-[#f2ede4]"
             }`}
           >
             Cloth ideas
@@ -330,12 +330,12 @@ export function TryOnStudio() {
               inputId={personInputId}
               state={person}
             />
-            <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/50">
+            <div className="rounded-2xl border border-white/10 bg-[#12121f] p-5 shadow-sm">
               <div className="mb-3">
-                <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                <h2 className="text-base font-semibold tracking-tight text-[#f2ede4]">
                   Quick styles
                 </h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                <p className="mt-1 text-sm text-[#8b8ba0]">
                   Tap to autofill a good prompt (you can edit it below).
                 </p>
               </div>
@@ -346,7 +346,7 @@ export function TryOnStudio() {
                     type="button"
                     disabled={busy}
                     onClick={() => setPrompt(p.prompt)}
-                    className="rounded-full border border-zinc-200 bg-white/70 px-3 py-1.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-white disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-950"
+                    className="rounded-full border border-white/15 bg-[#1a1a2e] px-3 py-1.5 text-sm font-semibold text-[#f2ede4] shadow-sm transition hover:border-[#1bcea8]/50 hover:bg-[#12121f] disabled:opacity-60"
                   >
                     {p.label}
                   </button>
@@ -357,17 +357,17 @@ export function TryOnStudio() {
         </div>
       )}
 
-      <div className="mt-8 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/50">
+      <div className="mt-7 rounded-2xl border border-white/10 bg-[#12121f] p-5 shadow-sm">
         <label
           htmlFor="prompt"
-          className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
+          className="text-sm font-medium text-[#f2ede4]"
         >
-          Prompt
+          Prompt (optional)
         </label>
-        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1 text-xs text-[#8b8ba0]">
           {mode === "tryon"
-            ? "Leave blank to use the built-in try-on prompt, or describe lighting/background/fit."
-            : "Leave blank to use the built-in cloth-ideas prompt, or specify the style (shirt, t-shirt, etc)."}
+            ? "Use this only if you need to control lighting, background, or fit style."
+            : "Use this to define garment style details more precisely."}
         </p>
         <textarea
           id="prompt"
@@ -376,11 +376,11 @@ export function TryOnStudio() {
           disabled={busy}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="e.g. Outdoor natural light, neutral background, the garment fits naturally."
-          className="mt-3 w-full resize-y rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+          className="mt-3 w-full resize-y rounded-xl border border-white/15 bg-[#0d0d1c] px-4 py-3 text-sm text-[#f2ede4] placeholder:text-[#555570] focus:border-[#1bcea8] focus:outline-none focus:ring-2 focus:ring-[#1bcea8]/20"
         />
       </div>
 
-      <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+      <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
         <button
           type="button"
           disabled={
@@ -390,12 +390,12 @@ export function TryOnStudio() {
               : !item.file)
           }
           onClick={() => void run()}
-          className="inline-flex min-h-12 min-w-[200px] items-center justify-center rounded-full bg-violet-600 px-8 text-sm font-semibold text-white shadow-lg shadow-violet-600/25 transition hover:bg-violet-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 disabled:shadow-none dark:disabled:bg-zinc-700 dark:disabled:text-zinc-400"
+          className="inline-flex min-h-12 min-w-[200px] items-center justify-center rounded-full bg-[#1bcea8] px-8 text-sm font-semibold text-[#07070f] shadow-lg shadow-[#1bcea8]/25 transition hover:bg-[#22efc2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1bcea8] disabled:cursor-not-allowed disabled:bg-[#555570] disabled:text-[#8b8ba0] disabled:shadow-none"
         >
-          {busy ? "Working…" : mode === "tryon" ? "Generate try-on" : "Generate idea"}
+          {busy ? "Generating..." : mode === "tryon" ? "Generate try-on" : "Generate style"}
         </button>
         {!busy && statusMessage && (
-          <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="text-center text-sm text-[#8b8ba0]">
             {statusMessage}
           </p>
         )}
@@ -410,16 +410,12 @@ export function TryOnStudio() {
             tipIndex={tipIndex}
           />
           <div
-            className="rounded-2xl border border-dashed border-zinc-200/90 bg-zinc-50/80 px-4 py-10 text-center dark:border-zinc-700 dark:bg-zinc-900/40"
+            className="rounded-2xl border border-dashed border-white/15 bg-[#0d0d1c] px-4 py-10 text-center"
             aria-hidden
           >
-            <div className="mx-auto mb-3 h-40 max-w-sm rounded-xl bg-linear-to-br from-zinc-200/80 to-zinc-100/50 animate-pulse dark:from-zinc-800 dark:to-zinc-900/80" />
-            <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-              Your try-on will show here
-            </p>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
-              Progress keeps moving so the wait feels shorter—inference can take a
-              minute depending on load.
+            <div className="mx-auto mb-3 h-40 max-w-sm animate-pulse rounded-xl bg-linear-to-br from-[#1a1a2e] to-[#12121f]" />
+            <p className="text-sm font-medium text-[#8b8ba0]">
+              Preparing your result preview
             </p>
           </div>
         </div>
@@ -428,7 +424,7 @@ export function TryOnStudio() {
       {error && (
         <div
           role="alert"
-          className="mt-8 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200"
+          className="mt-8 rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
         >
           {error}
         </div>
@@ -436,17 +432,17 @@ export function TryOnStudio() {
 
       {resultDataUrls.length > 0 && (
         <section className="mt-12">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            Your result
+          <h2 className="text-lg font-semibold text-[#f2ede4]">
+            Result
           </h2>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Loaded from CDN. Right-click or long-press to save.
+          <p className="mt-1 text-sm text-[#8b8ba0]">
+            Right-click or long-press to save.
           </p>
           <div className="mt-4 grid gap-6 sm:grid-cols-2">
             {resultDataUrls.map((url, i) => (
               <div
                 key={`${url.slice(0, 48)}-${i}`}
-                className="group overflow-hidden rounded-2xl border border-zinc-200/80 bg-zinc-50 shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/40"
+                className="group overflow-hidden rounded-2xl border border-white/10 bg-[#12121f] shadow-sm transition hover:shadow-md"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -459,7 +455,7 @@ export function TryOnStudio() {
                 <a
                   href={url}
                   download={`outfitai-tryon-${i + 1}.png`}
-                  className="block border-t border-zinc-200/80 px-4 py-3 text-center text-sm font-medium text-violet-600 group-hover:text-violet-500 dark:border-zinc-800 dark:text-violet-400"
+                  className="block border-t border-white/10 px-4 py-3 text-center text-sm font-medium text-[#1bcea8] group-hover:text-[#22efc2]"
                 >
                   Download
                 </a>
@@ -469,8 +465,8 @@ export function TryOnStudio() {
         </section>
       )}
 
-      <footer className="mt-16 border-t border-zinc-200/80 pt-8 text-center text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-500">
-        Tip: Use well-lit images for best results.
+      <footer className="mt-10 border-t border-white/10 pt-6 text-center text-xs text-[#555570]">
+        Use well-lit source images for best output quality.
       </footer>
     </div>
   );
