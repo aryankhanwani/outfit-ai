@@ -469,9 +469,6 @@ export function TryOnStudio() {
         </section>
       )}
 
-      <footer className="mt-16 border-t border-zinc-200/80 pt-8 text-center text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-500">
-        Tip: Use well-lit images for best results.
-      </footer>
     </div>
   );
 }
